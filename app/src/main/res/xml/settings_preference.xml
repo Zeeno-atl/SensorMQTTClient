@@ -3,21 +3,21 @@
 
 
     <EditTextPreference
-        app:defaultValue="@string/pref_default_port"
-        app:dialogMessage="@string/pref_port_no_dialog_message"
-        app:dialogTitle="@string/pref_port_no_dialog_title"
-        app:key="@string/pref_key_websocket_port_no"
-        app:title="Websocket Port"
+        app:defaultValue="@string/pref_default_mqtt_host"
+        app:dialogMessage="Enter MQTT broker hostname or IP address"
+        app:dialogTitle="@string/pref_mqtt_host_dialog_title"
+        app:key="@string/pref_key_mqtt_broker_host"
+        app:title="MQTT Broker Host"
         app:useSimpleSummaryProvider="true"
         app:icon="@drawable/ic_baseline_info_24"
         />
 
     <EditTextPreference
-        app:defaultValue="@string/pref_default_http_port"
-        app:dialogMessage="@string/pref_port_no_dialog_message"
-        app:dialogTitle="@string/pref_http_port_no_dialog_title"
-        app:key="@string/pref_key_http_port_no"
-        app:title="Http Port"
+        app:defaultValue="@string/pref_default_mqtt_port"
+        app:dialogMessage="@string/pref_mqtt_port_dialog_message"
+        app:dialogTitle="@string/pref_mqtt_port_dialog_title"
+        app:key="@string/pref_key_mqtt_broker_port"
+        app:title="MQTT Broker Port"
         app:useSimpleSummaryProvider="true"
         app:icon="@drawable/ic_baseline_info_24"
         />
@@ -61,7 +61,7 @@
         app:key="@string/pref_key_discoverable"
         app:icon="@android:drawable/ic_menu_search"
         app:title="Discoverable"
-        android:summaryOn="Service type : _websocket._tcp"
+        android:summaryOn="Service type : _mqtt._tcp"
         />
 
 

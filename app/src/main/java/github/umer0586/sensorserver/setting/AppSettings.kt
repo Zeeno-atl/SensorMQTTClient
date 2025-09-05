@@ -20,32 +20,17 @@ class AppSettings(context: Context)
         )
     }
 
-    fun saveWebsocketPortNo(portNo: Int)
-    {
-        sharedPreferences.edit()
-            .putInt(context.getString(R.string.pref_key_websocket_port_no), portNo)
-            .apply()
-    }
-
-    fun getWebsocketPortNo(): Int
-    {
-        return sharedPreferences.getInt(
-            context.getString(R.string.pref_key_websocket_port_no),
-            DEFAULT_WEBSOCKET_PORT_NO
-        )
-    }
-
     fun saveHttpPortNo(portNo: Int)
     {
         sharedPreferences.edit()
-                .putInt(context.getString(R.string.pref_key_http_port_no), portNo)
+                .putInt("httpPortNo", portNo)
                 .apply()
     }
 
     fun getHttpPortNo(): Int
     {
         return sharedPreferences.getInt(
-                context.getString(R.string.pref_key_http_port_no),
+                "httpPortNo",
                 DEFAULT_HTTP_PORT_NO
         )
     }

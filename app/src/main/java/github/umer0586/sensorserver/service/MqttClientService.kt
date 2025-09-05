@@ -105,13 +105,13 @@ class MqttClientService : Service() {
         }
         val disconnectPendingIntent = PendingIntent.getBroadcast(
             this, 0, disconnectIntent, 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+PendingIntent.FLAG_IMMUTABLE
         )
         
         val mainActivityIntent = Intent(this, MainActivity::class.java)
         val contentPendingIntent = PendingIntent.getActivity(
             this, 0, mainActivityIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+PendingIntent.FLAG_IMMUTABLE
         )
         
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
@@ -129,7 +129,7 @@ class MqttClientService : Service() {
         val mainActivityIntent = Intent(this, MainActivity::class.java)
         val contentPendingIntent = PendingIntent.getActivity(
             this, 0, mainActivityIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+PendingIntent.FLAG_IMMUTABLE
         )
         
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
@@ -147,11 +147,7 @@ class MqttClientService : Service() {
         sensorMqttClient?.disconnect()
         sensorMqttClient = null
         clientStateListener?.onClientDisconnected()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        } else {
-            stopForeground(true)
-        }
+        stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
     
@@ -174,17 +170,15 @@ class MqttClientService : Service() {
     }
     
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "MQTT Client Service"
-            val descriptionText = "MQTT sensor data publishing service"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val name = "MQTT Client Service"
+        val descriptionText = "MQTT sensor data publishing service"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+            description = descriptionText
         }
+        val notificationManager: NotificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
     
     private fun registerBroadcastReceiver() {
@@ -215,7 +209,7 @@ class MqttClientService : Service() {
         val mainActivityIntent = Intent(this, MainActivity::class.java)
         val contentPendingIntent = PendingIntent.getActivity(
             this, 0, mainActivityIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+PendingIntent.FLAG_IMMUTABLE
         )
         
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)

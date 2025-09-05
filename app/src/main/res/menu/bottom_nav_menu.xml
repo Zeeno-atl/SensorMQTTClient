@@ -3,14 +3,14 @@
 
 
     <item
-        android:id="@+id/navigation_server"
+        android:id="@+id/navigation_client"
         android:icon="@drawable/ic_baseline_graphic_eq_24"
-        android:title="Server" />
+        android:title="Client" />
 
     <item
-        android:id="@+id/navigation_connections"
+        android:id="@+id/navigation_status"
         android:icon="@drawable/ic_connections"
-        android:title="@string/title_connections" />
+        android:title="@string/title_client" />
 
     <item
         android:id="@+id/navigation_available_sensors"

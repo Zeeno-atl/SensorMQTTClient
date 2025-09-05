@@ -24,10 +24,6 @@ import github.umer0586.sensorserver.R
 import github.umer0586.sensorserver.databinding.ActivityMainBinding
 import github.umer0586.sensorserver.fragments.AvailableSensorsFragment
 import github.umer0586.sensorserver.fragments.ClientFragment
-import github.umer0586.sensorserver.service.HttpServerStateListener
-import github.umer0586.sensorserver.service.HttpService
-import github.umer0586.sensorserver.service.ServiceBindHelper
-import github.umer0586.sensorserver.webserver.HttpServerInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.lang.Exception
@@ -37,8 +33,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
 
     private lateinit var actionBarDrawerToggle: ActionBarDrawerToggle
 
-    private lateinit var httpServiceBindHelper: ServiceBindHelper
-    private var httpService: HttpService? = null
 
     private lateinit var binding : ActivityMainBinding
 
@@ -65,21 +59,13 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
         setSupportActionBar(binding.toolbar.root)
 
 
-        binding.dashboard.bottomNavView.selectedItemId = R.id.navigation_server
+        binding.dashboard.bottomNavView.selectedItemId = R.id.navigation_client
         binding.dashboard.bottomNavView.setOnItemSelectedListener(this)
 
 
 
 
 
-
-        httpServiceBindHelper = ServiceBindHelper(
-                context = applicationContext,
-                service = HttpService::class.java,
-                componentLifecycle = lifecycle
-        )
-
-        httpServiceBindHelper.onServiceConnected(this::onHttpServiceConnected)
 
         binding.dashboard.viewPager.isUserInputEnabled = false
         binding.dashboard.viewPager.adapter = MyFragmentStateAdapter(this)
@@ -124,95 +110,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
 
 
 
-    private fun onHttpServiceConnected(binder: IBinder){
-
-
-        val httpServerAddressParentView = (binding.drawerNavigationView.menu
-                .findItem(R.id.nav_drawer_http_server_address).actionView as RelativeLayout)
-        val httpServerAddress = httpServerAddressParentView.findViewById<TextView>(R.id.server_address)
-
-        val httpServerSwitch = (binding.drawerNavigationView.menu.findItem(R.id.nav_drawer_http_server_switch).actionView as RelativeLayout).getChildAt(0) as SwitchCompat
-
-
-        val showServerAddress : ((HttpServerInfo) -> Unit) = {info ->
-            httpServerAddressParentView.visibility = View.VISIBLE
-            httpServerAddress.apply {
-                visibility = View.VISIBLE
-                text = info.baseUrl
-            }
-
-        }
-
-        val hideServerAddress  = {
-            httpServerAddressParentView.visibility = View.GONE
-            httpServerAddress.visibility = View.INVISIBLE
-        }
-
-        hideServerAddress()
-
-        val localBinder = binder as HttpService.LocalBinder
-        httpService = localBinder.service
-
-        httpService?.setServerStateListener(object : HttpServerStateListener{
-            override fun onStart(httpServerInfo: HttpServerInfo) {
-                lifecycleScope.launch(Dispatchers.Main){
-                    showServerAddress(httpServerInfo)
-                    Toast.makeText(this@MainActivity,"web server started",Toast.LENGTH_SHORT).show()
-                    httpServerSwitch.isChecked = true
-                }
-            }
-
-            override fun onStop() {
-                lifecycleScope.launch(Dispatchers.Main){
-                    hideServerAddress()
-                    Toast.makeText(this@MainActivity,"web server stopped",Toast.LENGTH_SHORT).show()
-                    httpServerSwitch.isChecked = false
-                }
-            }
-
-            override fun onError(exception: Exception) {
-                lifecycleScope.launch(Dispatchers.Main){
-                    Toast.makeText(this@MainActivity,exception.message,Toast.LENGTH_SHORT).show()
-                    httpServerSwitch.isChecked = false
-                    Log.e(TAG,exception.message.toString())
-                }
-
-            }
-
-            override fun onRunning(httpServerInfo: HttpServerInfo) {
-                lifecycleScope.launch(Dispatchers.Main){
-                    showServerAddress(httpServerInfo)
-                    httpServerSwitch.isChecked = true
-                }
-            }
-
-        })
-
-        httpService?.checkState()
-
-        httpServerSwitch.setOnCheckedChangeListener { _, isChecked ->
-            val isServerRunning = httpService?.isServerRunning ?: false
-            if(isChecked && !isServerRunning){
-
-                // Whether user grant this permission or not we will start service anyway
-                // If permission is not granted foreground notification will not be shown
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    PermissionX.init(this)
-                            .permissions(android.Manifest.permission.POST_NOTIFICATIONS)
-                            .request{_,_,_ -> }
-                }
-
-                val intent = Intent(applicationContext, HttpService::class.java)
-                ContextCompat.startForegroundService(applicationContext, intent)
-            }
-            else if (!isChecked && isServerRunning) {
-                val intent = Intent(HttpService.ACTION_STOP_SERVER).apply {
-                    setPackage(applicationContext.packageName)
-                }
-                this.sendBroadcast(intent)
-            }
-        }
-    }
 
 
     override fun onPause()
@@ -220,8 +117,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
         super.onPause()
         Log.d(TAG, "onPause()")
 
-        // To prevent memory leak
-        httpService?.setServerStateListener(null)
     }
 
 
@@ -237,7 +132,7 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
                 return true
             }
 
-            R.id.navigation_server ->
+            R.id.navigation_client ->
             {
                 binding.dashboard.viewPager.setCurrentItem(POSITION_SERVER_FRAGMENT, false)
                 supportActionBar?.title = "Sensor Server"

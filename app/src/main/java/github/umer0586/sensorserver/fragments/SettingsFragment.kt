@@ -34,8 +34,8 @@ class SettingsFragment : PreferenceFragmentCompat()
         setPreferencesFromResource(R.xml.settings_preference, rootKey)
         appSettings = AppSettings(requireContext())
 
-        handleWebsocketPortNoPreference()
-        handleHttpPortPreference()
+        handleMqttBrokerHostPreference()
+        handleMqttBrokerPortPreference()
         handleLocalHostPreference()
         handleAllInterfacesPreference()
         handleSamplingRatePreference()
@@ -63,39 +63,17 @@ class SettingsFragment : PreferenceFragmentCompat()
         }
     }
 
-    private fun handleHttpPortPreference()
+    private fun handleMqttBrokerHostPreference()
     {
-        val httpPortNoPref = findPreference<EditTextPreference>(getString(R.string.pref_key_http_port_no))
-        //websocketPortPref?.summary = appSettings.getPortNo().toString()
+        val mqttHostPref = findPreference<EditTextPreference>(getString(R.string.pref_key_mqtt_broker_host))
 
-        httpPortNoPref?.setOnBindEditTextListener { editText: EditText ->
-            editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
-        }
-
-        httpPortNoPref?.setOnPreferenceChangeListener { _, newValue ->
-            try
-            {
-                val portNo: Int = newValue.toString().toInt()
-                if (portNo >= 1024 && portNo <= 49151)
-                {
-                    if(portNo == appSettings.getWebsocketPortNo())
-                    {
-                        showAlertDialog("$portNo is already set for WebSocket server")
-                        return@setOnPreferenceChangeListener false
-                    }
-                    appSettings.saveHttpPortNo(portNo)
-                    return@setOnPreferenceChangeListener true
-                }
-                else
-                {
-                    showAlertDialog("Please Select valid port No")
-                    return@setOnPreferenceChangeListener false
-                }
-            }
-            catch (e: NumberFormatException)
-            {
-                e.printStackTrace()
-                showAlertDialog("Please Select valid port No")
+        mqttHostPref?.setOnPreferenceChangeListener { _, newValue ->
+            val host = newValue.toString().trim()
+            if (host.isNotEmpty()) {
+                appSettings.saveMqttBrokerHost(host)
+                return@setOnPreferenceChangeListener true
+            } else {
+                showAlertDialog("Please enter a valid MQTT broker host")
                 return@setOnPreferenceChangeListener false
             }
         }
@@ -226,38 +204,33 @@ class SettingsFragment : PreferenceFragmentCompat()
 
 
     }
-    private fun handleWebsocketPortNoPreference()
+    private fun handleMqttBrokerPortPreference()
     {
-        val websocketPortPref = findPreference<EditTextPreference>(getString(R.string.pref_key_websocket_port_no))
-        //websocketPortPref?.summary = appSettings.getPortNo().toString()
+        val mqttPortPref = findPreference<EditTextPreference>(getString(R.string.pref_key_mqtt_broker_port))
 
-        websocketPortPref?.setOnBindEditTextListener { editText: EditText ->
+        mqttPortPref?.setOnBindEditTextListener { editText: EditText ->
             editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
         }
 
-        websocketPortPref?.setOnPreferenceChangeListener { _, newValue ->
+        mqttPortPref?.setOnPreferenceChangeListener { _, newValue ->
             try
             {
                 val portNo: Int = newValue.toString().toInt()
-                if (portNo >= 1024 && portNo <= 49151)
+                if (portNo >= 1 && portNo <= 65535)
                 {
-                    if(portNo == appSettings.getHttpPortNo()){
-                        showAlertDialog("$portNo is already set for Http server")
-                        return@setOnPreferenceChangeListener false
-                    }
-                    appSettings.saveWebsocketPortNo(portNo)
+                    appSettings.saveMqttBrokerPort(portNo)
                     return@setOnPreferenceChangeListener true
                 }
                 else
                 {
-                    showAlertDialog("Please Select valid port No")
+                    showAlertDialog("Please enter a valid port number (1-65535)")
                     return@setOnPreferenceChangeListener false
                 }
             }
             catch (e: NumberFormatException)
             {
                 e.printStackTrace()
-                showAlertDialog("Please Select valid port No")
+                showAlertDialog("Please enter a valid port number")
                 return@setOnPreferenceChangeListener false
             }
         }

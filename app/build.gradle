@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId 'github.zeeno_atl.sensormqttclient'
-        minSdk 21
+        minSdk 31
         targetSdk 34
         multiDexEnabled true
         versionCode 34
@@ -42,7 +42,6 @@ android {
     }
 }
 
-apply plugin: 'com.yanzhenjie.andserver'
 
 dependencies {
 
@@ -70,8 +69,6 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.10.1'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.20"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
-    implementation 'com.yanzhenjie.andserver:api:2.1.12'
-    kapt 'com.yanzhenjie.andserver:processor:2.1.12'
     implementation 'com.guolindev.permissionx:permissionx:1.8.0'
 
 
