@@ -2,8 +2,10 @@ package github.umer0586.sensorserver.mqttclient
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -31,8 +33,9 @@ class SensorMqttClient(
     private val messageQueue = MessageQueue(maxAge = 10_000) // 10s buffer
     
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-    private val minTimeMs = 5000L // Request location updates every 5 seconds minimum
-    private val minDistanceM = 1f // Request updates when moved 1 meter minimum
+    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    private val minTimeMs = 1000L // Request location updates every 1 second minimum
+    private val minDistanceM = 0f // No distance minimum - rely only on time interval
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     
@@ -80,6 +83,7 @@ class SensorMqttClient(
                     publishQueuedMessages()
                     publishStatusMessage("connected")
                     startLocationUpdates()
+                    startSensorUpdates()
                 }
                 
             } catch (exception: Exception) {
@@ -176,6 +180,7 @@ class SensorMqttClient(
             try {
                 publishStatusMessage("disconnected")
                 stopLocationUpdates()
+                stopSensorUpdates()
                 mqttClient.disconnect()
                 isConnected = false
             } catch (e: Exception) {
@@ -266,6 +271,28 @@ class SensorMqttClient(
         } catch (e: SecurityException) {
             // Permission was revoked
         }
+    }
+    
+    private fun startSensorUpdates() {
+        // Register for common sensors
+        val sensorsToRegister = listOf(
+            android.hardware.Sensor.TYPE_ACCELEROMETER,
+            android.hardware.Sensor.TYPE_GYROSCOPE, 
+            android.hardware.Sensor.TYPE_MAGNETIC_FIELD,
+            android.hardware.Sensor.TYPE_GRAVITY,
+            android.hardware.Sensor.TYPE_LINEAR_ACCELERATION,
+            android.hardware.Sensor.TYPE_ROTATION_VECTOR
+        )
+        
+        sensorsToRegister.forEach { sensorType ->
+            sensorManager.getDefaultSensor(sensorType)?.let { sensor ->
+                sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_GAME)
+            }
+        }
+    }
+    
+    private fun stopSensorUpdates() {
+        sensorManager.unregisterListener(this)
     }
     
     private fun hasLocationPermission(): Boolean {
