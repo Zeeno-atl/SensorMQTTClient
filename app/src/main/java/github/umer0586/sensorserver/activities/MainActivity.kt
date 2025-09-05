@@ -90,8 +90,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
             if (menuItem.itemId == R.id.nav_drawer_device_axis)
                 startActivity( Intent(this, DeviceAxisActivity::class.java ) )
 
-            if (menuItem.itemId == R.id.nav_drawer_touch_sensors)
-                startActivity( Intent(this, TouchScreenActivity::class.java) )
 
 
             false

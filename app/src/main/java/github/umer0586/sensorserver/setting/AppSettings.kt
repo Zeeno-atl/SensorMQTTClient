@@ -133,6 +133,12 @@ class AppSettings(context: Context)
         return deviceId
     }
     
+    fun saveDeviceId(deviceId: String) {
+        sharedPreferences.edit()
+            .putString("device_id", deviceId)
+            .apply()
+    }
+    
     fun saveMqttQosLevel(qos: Int) {
         sharedPreferences.edit()
             .putInt("mqtt_qos", qos)

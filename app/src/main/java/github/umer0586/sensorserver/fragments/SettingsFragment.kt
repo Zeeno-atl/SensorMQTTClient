@@ -1,8 +1,6 @@
 package github.umer0586.sensorserver.fragments
 
-import android.content.Context
 import android.content.DialogInterface
-import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.text.InputType
 import android.widget.EditText
@@ -10,11 +8,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.text.HtmlCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.SwitchPreferenceCompat
-import com.google.android.material.snackbar.Snackbar
 import github.umer0586.sensorserver.R
-import github.umer0586.sensorserver.customextensions.getHotspotIp
-import github.umer0586.sensorserver.customextensions.isHotSpotEnabled
 import github.umer0586.sensorserver.setting.AppSettings
 
 class SettingsFragment : PreferenceFragmentCompat()
@@ -23,10 +17,6 @@ class SettingsFragment : PreferenceFragmentCompat()
 
     private lateinit var appSettings: AppSettings
 
-    private var  hotspotPref : SwitchPreferenceCompat? = null
-    private var  localHostPref : SwitchPreferenceCompat? = null
-    private var  allInterfacesPref : SwitchPreferenceCompat? = null
-    private var  discoverablePref : SwitchPreferenceCompat? = null
 
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
@@ -36,32 +26,11 @@ class SettingsFragment : PreferenceFragmentCompat()
 
         handleMqttBrokerHostPreference()
         handleMqttBrokerPortPreference()
-        handleLocalHostPreference()
-        handleAllInterfacesPreference()
+        handleDeviceIdPreference()
         handleSamplingRatePreference()
-        handleHotspotPref()
-        handleDiscoverablePref()
 
     }
 
-    private fun handleDiscoverablePref() {
-        discoverablePref = findPreference(getString(R.string.pref_key_discoverable))
-        discoverablePref?.isChecked = appSettings.isDiscoverableEnabled()
-
-        discoverablePref?.setOnPreferenceChangeListener { _, newValue ->
-            appSettings.saveDiscoverable(newValue as Boolean)
-
-            if(newValue == true)
-            {
-                localHostPref?.apply {
-                    isChecked = false
-                    appSettings.enableLocalHostOption(false)
-                }
-            }
-
-            return@setOnPreferenceChangeListener true
-        }
-    }
 
     private fun handleMqttBrokerHostPreference()
     {
@@ -79,131 +48,22 @@ class SettingsFragment : PreferenceFragmentCompat()
         }
     }
 
-    private fun handleHotspotPref()
+    private fun handleDeviceIdPreference()
     {
-        val wifiManager = requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val deviceIdPref = findPreference<EditTextPreference>(getString(R.string.pref_key_device_id))
 
-        hotspotPref = findPreference(getString(R.string.pref_key_hotspot))
-
-        // sync setting interface with previously saved preference
-        if(wifiManager.isHotSpotEnabled() && appSettings.isHotspotOptionEnabled())
-        {
-
-            hotspotPref?.apply {
-                summary = wifiManager.getHotspotIp()
-                isChecked = true
+        deviceIdPref?.setOnPreferenceChangeListener { _, newValue ->
+            val deviceId = newValue.toString().trim()
+            if (deviceId.isNotEmpty() && deviceId.matches(Regex("^[a-zA-Z0-9_-]+$"))) {
+                appSettings.saveDeviceId(deviceId)
+                return@setOnPreferenceChangeListener true
+            } else {
+                showAlertDialog("Please enter a valid device ID (alphanumeric, underscore, and dash only)")
+                return@setOnPreferenceChangeListener false
             }
-
-
         }
-
-        hotspotPref?.setOnPreferenceChangeListener { _, newValue ->
-
-            val newState = newValue as Boolean
-
-            //User disabled the switch
-            if (newState == false)
-            {
-                appSettings.enableHotspotOption(false)
-                return@setOnPreferenceChangeListener true //persist switch state without doing anything
-            }
-            if (newState == true)
-            {
-                if (wifiManager.isHotSpotEnabled())
-                {
-                    appSettings.enableHotspotOption(true)
-                    hotspotPref?.summary = wifiManager.getHotspotIp()
-
-                    localHostPref?.apply {
-                        isChecked = false
-                        appSettings.enableLocalHostOption(false)
-                    }
-
-                    allInterfacesPref?.apply {
-                        isChecked = false
-                        appSettings.listenOnAllInterfaces(false)
-                    }
-
-
-                    return@setOnPreferenceChangeListener true
-                }
-                else
-                {
-                    Snackbar.make(requireView(), "Please enable hotspot", Snackbar.LENGTH_SHORT)
-                        .show()
-                    appSettings.enableHotspotOption(false)
-                    return@setOnPreferenceChangeListener false
-                }
-            }
-
-            return@setOnPreferenceChangeListener true
-
-        }
-
     }
 
-    private fun handleLocalHostPreference()
-    {
-        localHostPref = findPreference(getString(R.string.pref_key_localhost))
-
-        localHostPref?.setOnPreferenceChangeListener { _, newValue ->
-            val newState = newValue as Boolean
-            appSettings.enableLocalHostOption(newState)
-
-            if (newState == true)
-            {
-                hotspotPref?.apply {
-                    isChecked = false
-                    appSettings.enableHotspotOption(false)
-                }
-
-                allInterfacesPref?.apply {
-                    isChecked = false
-                    appSettings.listenOnAllInterfaces(false)
-                }
-
-                discoverablePref?.apply {
-                    isChecked = false
-                    appSettings.saveDiscoverable(false)
-                }
-            }
-
-
-            return@setOnPreferenceChangeListener true
-        }
-
-
-    }
-
-
-    private fun handleAllInterfacesPreference()
-    {
-        allInterfacesPref = findPreference(getString(R.string.pref_key_all_interface))
-        allInterfacesPref?.isChecked = appSettings.isAllInterfaceOptionEnabled()
-
-
-        allInterfacesPref?.setOnPreferenceChangeListener { _, newValue ->
-            val newState = newValue as Boolean
-            appSettings.listenOnAllInterfaces(newState)
-
-            if (newState == true)
-            {
-                hotspotPref?.apply {
-                    isChecked = false
-                    appSettings.enableHotspotOption(false)
-                }
-
-                localHostPref?.apply {
-                    isChecked = false
-                    appSettings.enableLocalHostOption(false)
-                }
-            }
-
-            return@setOnPreferenceChangeListener true
-        }
-
-
-    }
     private fun handleMqttBrokerPortPreference()
     {
         val mqttPortPref = findPreference<EditTextPreference>(getString(R.string.pref_key_mqtt_broker_port))

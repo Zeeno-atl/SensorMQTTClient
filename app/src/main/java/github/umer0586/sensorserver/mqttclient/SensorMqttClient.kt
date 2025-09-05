@@ -27,7 +27,6 @@ class SensorMqttClient(
     
     private var isConnected = false
     private var reconnectAttempts = 0
-    private val maxReconnectAttempts = 10
     private var reconnectDelay = 1000L // Start with 1s
     
     var onConnectionStatusChanged: ((Boolean, String?) -> Unit)? = null
@@ -75,15 +74,10 @@ class SensorMqttClient(
     }
     
     private fun scheduleReconnect() {
-        if (reconnectAttempts >= maxReconnectAttempts) {
-            onConnectionStatusChanged?.invoke(false, "Max reconnect attempts reached")
-            return
-        }
-        
         Handler(Looper.getMainLooper()).postDelayed({
             reconnectAttempts++
             connect()
-            reconnectDelay = minOf(reconnectDelay * 2, 30_000L) // Exponential backoff, max 30s
+            reconnectDelay = minOf(reconnectDelay * 2, 60_000L) // Exponential backoff, max 60s
         }, reconnectDelay)
     }
     
