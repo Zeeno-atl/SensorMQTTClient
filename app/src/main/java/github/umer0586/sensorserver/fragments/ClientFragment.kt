@@ -43,8 +43,14 @@ class ClientFragment : Fragment(), ClientStateListener {
         
         if (fineLocationGranted || coarseLocationGranted) {
             showMessage("GPS permission granted - GPS data will be included")
+            // Start MQTT service now that permission is granted
+            val intent = Intent(context, MqttClientService::class.java)
+            ContextCompat.startForegroundService(requireContext(), intent)
         } else {
             showMessage("GPS permission denied - GPS data will not be available")
+            // Start MQTT service anyway (GPS won't work but sensors will)
+            val intent = Intent(context, MqttClientService::class.java)
+            ContextCompat.startForegroundService(requireContext(), intent)
         }
     }
     
@@ -92,10 +98,12 @@ class ClientFragment : Fragment(), ClientStateListener {
         // Check location permission and request if needed
         if (!hasLocationPermission()) {
             requestLocationPermission()
+            // Service will start after permission is granted (see locationPermissionLauncher)
+        } else {
+            // Permission already granted, start service immediately
+            val intent = Intent(context, MqttClientService::class.java)
+            ContextCompat.startForegroundService(requireContext(), intent)
         }
-        
-        val intent = Intent(context, MqttClientService::class.java)
-        ContextCompat.startForegroundService(requireContext(), intent)
     }
     
     private fun hasLocationPermission(): Boolean {

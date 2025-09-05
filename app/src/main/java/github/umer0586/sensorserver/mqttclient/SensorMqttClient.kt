@@ -303,6 +303,9 @@ class SensorMqttClient(
         }
         
         try {
+            var gpsStarted = false
+            var networkStarted = false
+            
             // Try GPS first (more accurate)
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 locationManager.requestLocationUpdates(
@@ -311,6 +314,7 @@ class SensorMqttClient(
                     minDistanceM,
                     this
                 )
+                gpsStarted = true
             }
             
             // Also try network provider as fallback
@@ -321,9 +325,26 @@ class SensorMqttClient(
                     minDistanceM,
                     this
                 )
+                networkStarted = true
             }
+            
+            // Send a debug status message
+            val providers = mutableListOf<String>()
+            if (gpsStarted) providers.add("GPS")
+            if (networkStarted) providers.add("Network")
+            
+            if (providers.isNotEmpty()) {
+                val debugMessage = "Location providers started: ${providers.joinToString(", ")}"
+                val topic = "$topicPrefix/debug"
+                val message = """{"deviceId": "$deviceId", "timestamp": ${System.currentTimeMillis()}, "message": "$debugMessage"}"""
+                publishMessage(topic, message)
+            }
+            
         } catch (e: SecurityException) {
             // Location permission was revoked
+            val topic = "$topicPrefix/debug"
+            val message = """{"deviceId": "$deviceId", "timestamp": ${System.currentTimeMillis()}, "message": "Location permission error: ${e.message}"}"""
+            publishMessage(topic, message)
         }
     }
     
