@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.SensorServer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.SensorMQTTClient" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/brown</item>
         <item name="colorPrimaryVariant">@color/brown_2</item>
@@ -24,7 +24,7 @@
         <!-- Customize your theme here. -->
     </style>
 
-    <style name="Theme.SensorServer.FullScreen" parent="Theme.SensorServer">
+    <style name="Theme.SensorMQTTClient.FullScreen" parent="Theme.SensorMQTTClient">
         <item name="android:windowFullscreen">true</item>
     </style>
 

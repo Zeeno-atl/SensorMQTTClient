@@ -9,8 +9,8 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId 'github.umer0586.sensorserver'
-        minSdk 21
+        applicationId 'github.zeeno_atl.sensormqttclient'
+        minSdk 31
         targetSdk 34
         multiDexEnabled true
         versionCode 34
@@ -42,7 +42,6 @@ android {
     }
 }
 
-apply plugin: 'com.yanzhenjie.andserver'
 
 dependencies {
 
@@ -60,7 +59,8 @@ dependencies {
     //JSON parser
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.0'
 
-    implementation 'org.java-websocket:Java-WebSocket:1.5.3'
+    // MQTT dependencies
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
 
     implementation 'com.github.ybq:Android-SpinKit:1.4.0'
 
@@ -68,8 +68,6 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.10.1'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.20"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
-    implementation 'com.yanzhenjie.andserver:api:2.1.12'
-    kapt 'com.yanzhenjie.andserver:processor:2.1.12'
     implementation 'com.guolindev.permissionx:permissionx:1.8.0'
 
 

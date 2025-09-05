@@ -23,7 +23,7 @@ class AboutActivity : AppCompatActivity()
             openLink("http://www.buymeacoffee.com/umerfarooq")
         }
         findViewById<View>(R.id.sourceCodeBtn).setOnClickListener {
-            openLink("http://github.com/umer0586/SensorServer")
+            openLink("https://github.com/Zeeno-atl/SensorMQTTClient")
         }
 
         val version = findViewById<AppCompatTextView>(R.id.app_version)

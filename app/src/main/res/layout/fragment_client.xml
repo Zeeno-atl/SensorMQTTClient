@@ -14,28 +14,27 @@
     android:orientation="vertical">
 
     <androidx.cardview.widget.CardView
-        android:id="@+id/card_view"
+        android:id="@+id/status_card"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="50dp"
         app:cardCornerRadius="30dp"
         app:cardElevation="7dp"
+        android:visibility="gone"
         >
 
-
             <TextView
-                android:id="@+id/server_address"
+                android:id="@+id/status_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="https://192.168.102.112:8080"
+                android:text="mqtt://localhost → android_abc123"
                 android:textAlignment="center"
                 android:singleLine="true"
                 android:paddingVertical="15dp"
                 android:paddingHorizontal="40dp"
                 android:scrollbars="horizontal"
                 android:textSize="18dp" />
-
 
     </androidx.cardview.widget.CardView>
 
@@ -45,15 +44,14 @@
     android:layout_weight="0"
     >
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/start_button"
+        android:id="@+id/connect_button"
         style="@style/startButton"
         android:layout_width="120dp"
         android:layout_height="120dp"
         android:layout_centerInParent="true"
-        android:tag="stopped"
-        android:text="START"
+        android:tag="disconnected"
+        android:text="CONNECT"
         />
-
 
     <com.github.ybq.android.spinkit.SpinKitView
         android:id="@+id/pulse_animation"
@@ -61,12 +59,11 @@
         android:layout_height="160dp"
         android:layout_centerInParent="true"
         android:padding="10dp"
+        android:visibility="gone"
         app:SpinKit_Color="?attr/colorSecondary"
         app:SpinKit_Style="PulseRing" />
 
 </RelativeLayout>
-
-
 
 </LinearLayout>
 </ScrollView>
