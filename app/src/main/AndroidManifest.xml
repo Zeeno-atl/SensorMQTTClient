@@ -49,12 +49,6 @@
             android:theme="@style/Theme.SensorServer.FullScreen"/>
 
         <service
-            android:name=".service.WebsocketService"
-            android:foregroundServiceType="specialUse"
-            android:enabled="true"
-            android:exported="false" />
-
-        <service
             android:name=".service.HttpService"
             android:foregroundServiceType="specialUse"
             android:enabled="true"
