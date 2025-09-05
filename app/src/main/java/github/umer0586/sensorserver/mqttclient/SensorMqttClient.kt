@@ -16,6 +16,7 @@ import android.view.MotionEvent
 import androidx.core.app.ActivityCompat
 import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import github.umer0586.sensorserver.setting.AppSettings
 
 class SensorMqttClient(
     private val context: Context,
@@ -34,10 +35,17 @@ class SensorMqttClient(
     
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    private val appSettings = AppSettings(context)
     private val minTimeMs = 1000L // Request location updates every 1 second minimum
     private val minDistanceM = 0f // No distance minimum - rely only on time interval
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
+    
+    // Sensor batching to prevent ANR  
+    private val sensorDataBuffer = mutableMapOf<String, FloatArray>()
+    private val batchHandler = Handler(Looper.getMainLooper())
+    private val batchingIntervalMs = 100L // Batch every 100ms
+    private var batchingRunnable: Runnable? = null
     
     private var isConnected = false
     private var reconnectAttempts = 0
@@ -105,6 +113,9 @@ class SensorMqttClient(
     }
     
     override fun onSensorChanged(sensorEvent: SensorEvent) {
+        // Early exit if not connected - prevents ANR when disconnected
+        if (!isConnected) return
+        
         val sensorType = when(sensorEvent.sensor.type) {
             android.hardware.Sensor.TYPE_ACCELEROMETER -> "accelerometer"
             android.hardware.Sensor.TYPE_GYROSCOPE -> "gyroscope"
@@ -114,9 +125,11 @@ class SensorMqttClient(
             android.hardware.Sensor.TYPE_ROTATION_VECTOR -> "rotation_vector"
             else -> "sensor_${sensorEvent.sensor.type}"
         }
-        val topic = "$topicPrefix/$sensorType"
-        val message = createSensorMessage(sensorEvent, sensorType)
-        publishMessage(topic, message)
+        
+        // Copy sensor values to avoid SensorEvent reuse issues
+        val values = sensorEvent.values.clone()
+        sensorDataBuffer[sensorType] = values
+        scheduleBatchPublish()
     }
     
     override fun onLocationChanged(location: Location) {
@@ -175,14 +188,46 @@ class SensorMqttClient(
         publishMessage(topic, message)
     }
     
+    private fun scheduleBatchPublish() {
+        // Cancel existing runnable if any
+        batchingRunnable?.let { batchHandler.removeCallbacks(it) }
+        
+        // Schedule new batch publish
+        batchingRunnable = Runnable {
+            publishBatchedSensorData()
+        }
+        batchHandler.postDelayed(batchingRunnable!!, batchingIntervalMs)
+    }
+    
+    private fun publishBatchedSensorData() {
+        if (sensorDataBuffer.isEmpty() || !isConnected) return
+        
+        executor.execute {
+            val currentBatch = sensorDataBuffer.toMap()
+            sensorDataBuffer.clear()
+            
+            currentBatch.forEach { (sensorType, values) ->
+                val topic = "$topicPrefix/$sensorType"
+                val message = createSensorMessageFromValues(values, sensorType)
+                publishMessage(topic, message)
+            }
+        }
+    }
+    
     fun disconnect() {
+        // Immediately stop sensors and set disconnected to prevent ANR
+        isConnected = false
+        stopSensorUpdates()
+        stopLocationUpdates()
+        
+        // Cancel any pending batch publish
+        batchingRunnable?.let { batchHandler.removeCallbacks(it) }
+        sensorDataBuffer.clear()
+        
         executor.execute {
             try {
                 publishStatusMessage("disconnected")
-                stopLocationUpdates()
-                stopSensorUpdates()
                 mqttClient.disconnect()
-                isConnected = false
             } catch (e: Exception) {
                 // Ignore disconnect errors
             }
@@ -196,6 +241,16 @@ class SensorMqttClient(
             "sensorType": "$sensorType",
             "values": [${sensorEvent.values.joinToString(",")}],
             "accuracy": ${sensorEvent.accuracy}
+        }
+    """.trimIndent()
+    
+    private fun createSensorMessageFromValues(values: FloatArray, sensorType: String): String = """
+        {
+            "deviceId": "$deviceId",
+            "timestamp": ${System.currentTimeMillis()}, 
+            "sensorType": "$sensorType",
+            "values": [${values.joinToString(",")}],
+            "accuracy": 0
         }
     """.trimIndent()
     
@@ -274,6 +329,9 @@ class SensorMqttClient(
     }
     
     private fun startSensorUpdates() {
+        // Get sampling rate from settings (in microseconds)
+        val samplingRateUs = appSettings.getSamplingRate()
+        
         // Register for common sensors
         val sensorsToRegister = listOf(
             android.hardware.Sensor.TYPE_ACCELEROMETER,
@@ -286,7 +344,7 @@ class SensorMqttClient(
         
         sensorsToRegister.forEach { sensorType ->
             sensorManager.getDefaultSensor(sensorType)?.let { sensor ->
-                sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_GAME)
+                sensorManager.registerListener(this, sensor, samplingRateUs)
             }
         }
     }
