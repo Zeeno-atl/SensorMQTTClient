@@ -2,7 +2,7 @@ name: Android Build & Test
 
 on:
   push:
-    branches: [ main, develop, 'feature/*' ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
