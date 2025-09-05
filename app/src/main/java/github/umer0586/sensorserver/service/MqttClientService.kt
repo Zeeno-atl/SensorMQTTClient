@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import github.umer0586.sensorserver.R
 import github.umer0586.sensorserver.activities.MainActivity
 import github.umer0586.sensorserver.mqttclient.SensorMqttClient
@@ -146,7 +147,11 @@ class MqttClientService : Service() {
         sensorMqttClient?.disconnect()
         sensorMqttClient = null
         clientStateListener?.onClientDisconnected()
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            stopForeground(true)
+        }
         stopSelf()
     }
     
@@ -198,11 +203,12 @@ class MqttClientService : Service() {
             addAction(ACTION_DISCONNECT_CLIENT)
         }
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(broadcastMessageReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(broadcastMessageReceiver, intentFilter)
-        }
+        ContextCompat.registerReceiver(
+            this,
+            broadcastMessageReceiver, 
+            intentFilter, 
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
     
     private fun handleAndroid8andAbove() {

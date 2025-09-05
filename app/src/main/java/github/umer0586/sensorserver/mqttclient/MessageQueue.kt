@@ -32,7 +32,13 @@ class MessageQueue(private val maxAge: Long = 10_000) {
     }
     
     private fun cleanOldMessages() {
-        queue.removeIf { isExpired(it) }
+        // removeIf requires API 24+, use iterator for API 21+ compatibility
+        val iterator = queue.iterator()
+        while (iterator.hasNext()) {
+            if (isExpired(iterator.next())) {
+                iterator.remove()
+            }
+        }
     }
     
     private fun isExpired(message: QueuedMessage): Boolean {
