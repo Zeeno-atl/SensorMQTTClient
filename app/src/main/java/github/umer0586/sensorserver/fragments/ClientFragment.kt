@@ -1,11 +1,14 @@
 package github.umer0586.sensorserver.fragments
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -30,6 +33,19 @@ class ClientFragment : Fragment(), ClientStateListener {
     
     companion object {
         private val TAG: String = ClientFragment::class.java.simpleName
+    }
+    
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocationGranted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseLocationGranted = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        
+        if (fineLocationGranted || coarseLocationGranted) {
+            showMessage("GPS permission granted - GPS data will be included")
+        } else {
+            showMessage("GPS permission denied - GPS data will not be available")
+        }
     }
     
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -73,8 +89,31 @@ class ClientFragment : Fragment(), ClientStateListener {
     private fun startClient() {
         Log.d(TAG, "startClient() called")
         
+        // Check location permission and request if needed
+        if (!hasLocationPermission()) {
+            requestLocationPermission()
+        }
+        
         val intent = Intent(context, MqttClientService::class.java)
         ContextCompat.startForegroundService(requireContext(), intent)
+    }
+    
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+    
+    private fun requestLocationPermission() {
+        locationPermissionLauncher.launch(arrayOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ))
     }
     
     private fun stopClient() {

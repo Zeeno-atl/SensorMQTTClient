@@ -1,13 +1,16 @@
 package github.umer0586.sensorserver.mqttclient
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.location.Location
 import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
+import androidx.core.app.ActivityCompat
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
@@ -24,6 +27,10 @@ class SensorMqttClient(
     private val mqttClient = MqttAndroidClient(context, brokerUrl, clientId)
     private val topicPrefix = "sensors/$deviceId"
     private val messageQueue = MessageQueue(maxAge = 10_000) // 10s buffer
+    
+    private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    private val minTimeMs = 5000L // Request location updates every 5 seconds minimum
+    private val minDistanceM = 1f // Request updates when moved 1 meter minimum
     
     private var isConnected = false
     private var reconnectAttempts = 0
@@ -47,6 +54,7 @@ class SensorMqttClient(
                 onConnectionStatusChanged?.invoke(true, "Connected to broker")
                 publishQueuedMessages()
                 publishStatusMessage("connected")
+                startLocationUpdates()
             }
             
             override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
@@ -146,6 +154,7 @@ class SensorMqttClient(
     
     fun disconnect() {
         publishStatusMessage("disconnected")
+        stopLocationUpdates()
         mqttClient.disconnect()
         isConnected = false
     }
@@ -194,5 +203,54 @@ class SensorMqttClient(
     
     override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {
         // Not implemented for now
+    }
+    
+    private fun startLocationUpdates() {
+        if (!hasLocationPermission()) {
+            return
+        }
+        
+        try {
+            // Try GPS first (more accurate)
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    minTimeMs,
+                    minDistanceM,
+                    this
+                )
+            }
+            
+            // Also try network provider as fallback
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    minTimeMs,
+                    minDistanceM,
+                    this
+                )
+            }
+        } catch (e: SecurityException) {
+            // Location permission was revoked
+        }
+    }
+    
+    private fun stopLocationUpdates() {
+        try {
+            locationManager.removeUpdates(this)
+        } catch (e: SecurityException) {
+            // Permission was revoked
+        }
+    }
+    
+    private fun hasLocationPermission(): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+        ActivityCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
     }
 }

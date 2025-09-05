@@ -5,10 +5,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import github.umer0586.sensorserver.R
@@ -99,6 +101,17 @@ class MqttClientService : Service() {
         sensorMqttClient?.connect()
     }
     
+    private fun hasLocationPermission(): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+        ActivityCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+    
     private fun showConnectedNotification(deviceId: String, brokerHost: String) {
         val disconnectIntent = Intent(ACTION_DISCONNECT_CLIENT).apply {
             setPackage(packageName)
@@ -114,9 +127,11 @@ PendingIntent.FLAG_IMMUTABLE
 PendingIntent.FLAG_IMMUTABLE
         )
         
+        val gpsStatus = if (hasLocationPermission()) "GPS enabled" else "GPS needs permission"
+        
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("MQTT Client Connected")
-            .setContentText("Device: $deviceId → mqtt://$brokerHost")
+            .setContentText("Device: $deviceId → mqtt://$brokerHost ($gpsStatus)")
             .setSmallIcon(R.drawable.ic_baseline_info_24)
             .setContentIntent(contentPendingIntent)
             .addAction(R.drawable.ic_baseline_info_24, "Disconnect", disconnectPendingIntent)
