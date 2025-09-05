@@ -9,10 +9,11 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
+import java.util.concurrent.Executors
 import android.view.MotionEvent
 import androidx.core.app.ActivityCompat
-import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 class SensorMqttClient(
     private val context: Context,
@@ -24,13 +25,16 @@ class SensorMqttClient(
     
     private val clientId = "mqtt_${deviceId}_${System.currentTimeMillis()}"
     private val brokerUrl = "tcp://$brokerHost:$brokerPort"
-    private val mqttClient = MqttAndroidClient(context, brokerUrl, clientId)
+    private val persistence = MemoryPersistence()
+    private val mqttClient = MqttClient(brokerUrl, clientId, persistence)
     private val topicPrefix = "sensors/$deviceId"
     private val messageQueue = MessageQueue(maxAge = 10_000) // 10s buffer
     
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val minTimeMs = 5000L // Request location updates every 5 seconds minimum
     private val minDistanceM = 1f // Request updates when moved 1 meter minimum
+    private val executor = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
     
     private var isConnected = false
     private var reconnectAttempts = 0
@@ -39,50 +43,57 @@ class SensorMqttClient(
     var onConnectionStatusChanged: ((Boolean, String?) -> Unit)? = null
     
     fun connect() {
-        val options = MqttConnectOptions().apply {
-            isAutomaticReconnect = false // We handle reconnection manually
-            isCleanSession = true
-            connectionTimeout = 30
-            keepAliveInterval = 60
-        }
-        
-        mqttClient.connect(options, null, object : IMqttActionListener {
-            override fun onSuccess(asyncActionToken: IMqttToken?) {
+        executor.execute {
+            try {
+                val options = MqttConnectOptions().apply {
+                    isAutomaticReconnect = false // We handle reconnection manually
+                    isCleanSession = true
+                    connectionTimeout = 30
+                    keepAliveInterval = 60
+                }
+                
+                mqttClient.setCallback(object : MqttCallback {
+                    override fun connectionLost(cause: Throwable?) {
+                        isConnected = false
+                        mainHandler.post {
+                            onConnectionStatusChanged?.invoke(false, "Connection lost: ${cause?.message}")
+                        }
+                        scheduleReconnect()
+                    }
+                    
+                    override fun messageArrived(topic: String?, message: MqttMessage?) {
+                        // Not needed for sensor publishing
+                    }
+                    
+                    override fun deliveryComplete(token: IMqttDeliveryToken?) {
+                        // Optional: track message delivery
+                    }
+                })
+                
+                mqttClient.connect(options)
                 isConnected = true
                 reconnectAttempts = 0
                 reconnectDelay = 1000L
-                onConnectionStatusChanged?.invoke(true, "Connected to broker")
-                publishQueuedMessages()
-                publishStatusMessage("connected")
-                startLocationUpdates()
-            }
-            
-            override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
+                
+                mainHandler.post {
+                    onConnectionStatusChanged?.invoke(true, "Connected to broker")
+                    publishQueuedMessages()
+                    publishStatusMessage("connected")
+                    startLocationUpdates()
+                }
+                
+            } catch (exception: Exception) {
                 isConnected = false
-                onConnectionStatusChanged?.invoke(false, exception?.message)
+                mainHandler.post {
+                    onConnectionStatusChanged?.invoke(false, exception.message)
+                }
                 scheduleReconnect()
             }
-        })
-        
-        mqttClient.setCallback(object : MqttCallback {
-            override fun connectionLost(cause: Throwable?) {
-                isConnected = false
-                onConnectionStatusChanged?.invoke(false, "Connection lost: ${cause?.message}")
-                scheduleReconnect()
-            }
-            
-            override fun messageArrived(topic: String?, message: MqttMessage?) {
-                // Not needed for sensor publishing
-            }
-            
-            override fun deliveryComplete(token: IMqttDeliveryToken?) {
-                // Optional: track message delivery
-            }
-        })
+        }
     }
     
     private fun scheduleReconnect() {
-        Handler(Looper.getMainLooper()).postDelayed({
+        mainHandler.postDelayed({
             reconnectAttempts++
             connect()
             reconnectDelay = minOf(reconnectDelay * 2, 60_000L) // Exponential backoff, max 60s
@@ -119,7 +130,11 @@ class SensorMqttClient(
     private fun publishMessage(topic: String, message: String) {
         if (isConnected && mqttClient.isConnected) {
             try {
-                mqttClient.publish(topic, message.toByteArray(), qosLevel, false)
+                val mqttMessage = MqttMessage(message.toByteArray()).apply {
+                    qos = qosLevel
+                    isRetained = false
+                }
+                mqttClient.publish(topic, mqttMessage)
             } catch (e: Exception) {
                 messageQueue.add(topic, message)
             }
@@ -131,7 +146,11 @@ class SensorMqttClient(
     private fun publishQueuedMessages() {
         messageQueue.drainTo { topic, message ->
             try {
-                mqttClient.publish(topic, message.toByteArray(), qosLevel, false)
+                val mqttMessage = MqttMessage(message.toByteArray()).apply {
+                    qos = qosLevel
+                    isRetained = false
+                }
+                mqttClient.publish(topic, mqttMessage)
                 true
             } catch (e: Exception) {
                 false
@@ -153,10 +172,16 @@ class SensorMqttClient(
     }
     
     fun disconnect() {
-        publishStatusMessage("disconnected")
-        stopLocationUpdates()
-        mqttClient.disconnect()
-        isConnected = false
+        executor.execute {
+            try {
+                publishStatusMessage("disconnected")
+                stopLocationUpdates()
+                mqttClient.disconnect()
+                isConnected = false
+            } catch (e: Exception) {
+                // Ignore disconnect errors
+            }
+        }
     }
     
     private fun createSensorMessage(sensorEvent: SensorEvent, sensorType: String): String = """

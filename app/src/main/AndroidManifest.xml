@@ -48,8 +48,7 @@
             android:exported="false"
             android:theme="@style/Theme.SensorMQTTClient.FullScreen"/>
 
-        <!-- MQTT Service -->
-        <service android:name="org.eclipse.paho.android.service.MqttService" />
+        <!-- MQTT Service no longer needed with core client -->
         
         <service
             android:name=".service.MqttClientService"

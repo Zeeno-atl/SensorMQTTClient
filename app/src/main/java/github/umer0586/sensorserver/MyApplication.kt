@@ -26,7 +26,7 @@ class MyApplication : Application()
             //each plugin you chose above can be configured in a block like this:
             mailSender {
                 //required
-                mailTo = "umerfarooq.phone@gmail.com"
+                mailTo = "zeeno.atl@gmail.com"
                 //defaults to true
                 reportAsFile = false
                 //defaults to ACRA-report.stacktrace

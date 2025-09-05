@@ -61,7 +61,6 @@ dependencies {
 
     // MQTT dependencies
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
-    implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
 
     implementation 'com.github.ybq:Android-SpinKit:1.4.0'
 
