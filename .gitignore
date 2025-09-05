@@ -9,3 +9,5 @@
 .cxx
 local.properties
 
+android-sdk/
+local.properties
