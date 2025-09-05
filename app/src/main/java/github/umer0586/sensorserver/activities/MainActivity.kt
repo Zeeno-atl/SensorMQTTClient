@@ -23,12 +23,9 @@ import com.permissionx.guolindev.PermissionX
 import github.umer0586.sensorserver.R
 import github.umer0586.sensorserver.databinding.ActivityMainBinding
 import github.umer0586.sensorserver.fragments.AvailableSensorsFragment
-import github.umer0586.sensorserver.fragments.ConnectionsFragment
-import github.umer0586.sensorserver.fragments.ServerFragment
 import github.umer0586.sensorserver.fragments.ClientFragment
 import github.umer0586.sensorserver.service.HttpServerStateListener
 import github.umer0586.sensorserver.service.HttpService
-import github.umer0586.sensorserver.service.WebsocketService
 import github.umer0586.sensorserver.service.ServiceBindHelper
 import github.umer0586.sensorserver.webserver.HttpServerInfo
 import kotlinx.coroutines.Dispatchers
@@ -39,9 +36,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
 {
 
     private lateinit var actionBarDrawerToggle: ActionBarDrawerToggle
-
-    private lateinit var websocketServiceBindHelper: ServiceBindHelper
-    private var websocketService: WebsocketService? = null
 
     private lateinit var httpServiceBindHelper: ServiceBindHelper
     private var httpService: HttpService? = null
@@ -55,8 +49,7 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
 
         // Fragments Positions
         private const val POSITION_SERVER_FRAGMENT = 0
-        private const val POSITION_CONNECTIONS_FRAGMENT = 1
-        private const val POSITION_AVAILABLE_SENSORS_FRAGMENT = 2
+        private const val POSITION_AVAILABLE_SENSORS_FRAGMENT = 1
     }
 
     override fun onCreate(savedInstanceState: Bundle?)
@@ -79,14 +72,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
 
 
 
-
-        websocketServiceBindHelper = ServiceBindHelper(
-            context = applicationContext,
-            service = WebsocketService::class.java,
-            componentLifecycle = lifecycle
-        )
-
-        websocketServiceBindHelper.onServiceConnected(this::onWebsocketServiceConnected)
 
         httpServiceBindHelper = ServiceBindHelper(
                 context = applicationContext,
@@ -138,21 +123,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
     }
 
 
-    private fun onWebsocketServiceConnected(binder: IBinder)
-    {
-        val localBinder = binder as WebsocketService.LocalBinder
-        websocketService = localBinder.service
-
-        websocketService?.let{ setConnectionCountBadge( it.getConnectionCount() ) }
-
-        websocketService?.onConnectionsCountChange { count ->
-
-            lifecycleScope.launch(Dispatchers.Main) {
-                setConnectionCountBadge(count)
-            }
-        }
-
-    }
 
     private fun onHttpServiceConnected(binder: IBinder){
 
@@ -251,18 +221,10 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
         Log.d(TAG, "onPause()")
 
         // To prevent memory leak
-        websocketService?.onConnectionsCountChange(callBack = null)
         httpService?.setServerStateListener(null)
     }
 
 
-    private fun setConnectionCountBadge(totalConnections: Int)
-    {
-        if (totalConnections > 0)
-            binding.dashboard.bottomNavView.getOrCreateBadge(R.id.navigation_connections).number = totalConnections
-        else
-            binding.dashboard.bottomNavView.removeBadge(R.id.navigation_connections)
-    }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean
     {
@@ -272,13 +234,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
             {
                 binding.dashboard.viewPager.setCurrentItem(POSITION_AVAILABLE_SENSORS_FRAGMENT, false)
                 supportActionBar?.title = "Available Sensors"
-                return true
-            }
-
-            R.id.navigation_connections ->
-            {
-                binding.dashboard.viewPager.setCurrentItem(POSITION_CONNECTIONS_FRAGMENT, false)
-                supportActionBar?.title = "Connections"
                 return true
             }
 
@@ -300,7 +255,6 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
             when (pos)
             {
                 POSITION_SERVER_FRAGMENT -> return ClientFragment()
-                POSITION_CONNECTIONS_FRAGMENT -> return ConnectionsFragment()
                 POSITION_AVAILABLE_SENSORS_FRAGMENT -> return AvailableSensorsFragment()
             }
             return ClientFragment()
@@ -308,7 +262,7 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
 
         override fun getItemCount(): Int
         {
-            return 3
+            return 2
         }
     }
 

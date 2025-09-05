@@ -60,9 +60,6 @@ dependencies {
     //JSON parser
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.0'
 
-    // Keep WebSocket temporarily for gradual migration
-    implementation 'org.java-websocket:Java-WebSocket:1.5.3'
-    
     // MQTT dependencies
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'

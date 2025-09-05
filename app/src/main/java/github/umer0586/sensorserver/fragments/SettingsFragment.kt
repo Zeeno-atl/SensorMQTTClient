@@ -204,7 +204,7 @@ class SettingsFragment : PreferenceFragmentCompat()
         allInterfacesPref?.isChecked = appSettings.isAllInterfaceOptionEnabled()
 
 
-        allInterfacesPref?.setOnPreferenceChangeListener { preference, newValue ->
+        allInterfacesPref?.setOnPreferenceChangeListener { _, newValue ->
             val newState = newValue as Boolean
             appSettings.listenOnAllInterfaces(newState)
 
@@ -299,7 +299,7 @@ class SettingsFragment : PreferenceFragmentCompat()
                         .setTitle("Invalid Input")
                         .setMessage("Negative value not allowed")
                         .setCancelable(false)
-                        .setPositiveButton("Okay") { dialog: DialogInterface, id: Int -> dialog.cancel() }
+                        .setPositiveButton("Okay") { dialog: DialogInterface, _ -> dialog.cancel() }
                         .create()
                         .show()
                     return@setOnPreferenceChangeListener false
@@ -314,7 +314,7 @@ class SettingsFragment : PreferenceFragmentCompat()
                     .setTitle("Invalid Input")
                     .setMessage("Value too large")
                     .setCancelable(false)
-                    .setPositiveButton("Okay") { dialog: DialogInterface, id: Int -> dialog.cancel() }
+                    .setPositiveButton("Okay") { dialog: DialogInterface, _ -> dialog.cancel() }
                     .create()
                     .show()
                 return@setOnPreferenceChangeListener false
@@ -328,7 +328,7 @@ class SettingsFragment : PreferenceFragmentCompat()
             .setTitle("Invalid Port No")
             .setMessage(message)
             .setCancelable(false)
-            .setPositiveButton("Okay") { dialog: DialogInterface, id: Int -> dialog.cancel() }
+            .setPositiveButton("Okay") { dialog: DialogInterface, _ -> dialog.cancel() }
             .create()
             .show()
     }

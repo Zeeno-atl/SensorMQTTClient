@@ -23,7 +23,7 @@ class RequestController {
     }
 
     @GetMapping("/sensors")
-    fun getSensors(context: Context, response: HttpResponse) : String {
+    fun getSensors(context: Context, @Suppress("UNUSED_PARAMETER") response: HttpResponse) : String {
 
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val availableSensors: List<Sensor> = sensorManager.getSensorList(Sensor.TYPE_ALL).filter{ it.reportingMode != Sensor.REPORTING_MODE_ONE_SHOT}
