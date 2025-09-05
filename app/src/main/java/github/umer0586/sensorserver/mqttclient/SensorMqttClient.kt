@@ -44,7 +44,7 @@ class SensorMqttClient(
     // Sensor batching to prevent ANR  
     private val sensorDataBuffer = mutableMapOf<String, FloatArray>()
     private val batchHandler = Handler(Looper.getMainLooper())
-    private val batchingIntervalMs = 100L // Batch every 100ms
+    private val batchingIntervalMs = 50L // Batch every 50ms for better responsiveness
     private var batchingRunnable: Runnable? = null
     
     private var isConnected = false
@@ -52,6 +52,12 @@ class SensorMqttClient(
     private var reconnectDelay = 1000L // Start with 1s
     
     var onConnectionStatusChanged: ((Boolean, String?) -> Unit)? = null
+    
+    init {
+        // Start GPS and sensors immediately when client is created (independent of MQTT connection)
+        startLocationUpdates()
+        startSensorUpdates()
+    }
     
     fun connect() {
         executor.execute {
@@ -90,8 +96,7 @@ class SensorMqttClient(
                     onConnectionStatusChanged?.invoke(true, "Connected to broker")
                     publishQueuedMessages()
                     publishStatusMessage("connected")
-                    startLocationUpdates()
-                    startSensorUpdates()
+                    // GPS and sensors already started in init
                 }
                 
             } catch (exception: Exception) {
@@ -113,9 +118,6 @@ class SensorMqttClient(
     }
     
     override fun onSensorChanged(sensorEvent: SensorEvent) {
-        // Early exit if not connected - prevents ANR when disconnected
-        if (!isConnected) return
-        
         val sensorType = when(sensorEvent.sensor.type) {
             android.hardware.Sensor.TYPE_ACCELEROMETER -> "accelerometer"
             android.hardware.Sensor.TYPE_GYROSCOPE -> "gyroscope"
@@ -133,6 +135,7 @@ class SensorMqttClient(
     }
     
     override fun onLocationChanged(location: Location) {
+        // Allow GPS publishing even when not connected (for debugging)
         val topic = "$topicPrefix/gps"
         val message = createGpsMessage(location)
         publishMessage(topic, message)
@@ -218,7 +221,7 @@ class SensorMqttClient(
         // Immediately stop sensors and set disconnected to prevent ANR
         isConnected = false
         stopSensorUpdates()
-        stopLocationUpdates()
+        // Keep GPS running even when MQTT disconnected
         
         // Cancel any pending batch publish
         batchingRunnable?.let { batchHandler.removeCallbacks(it) }
@@ -227,6 +230,7 @@ class SensorMqttClient(
         executor.execute {
             try {
                 publishStatusMessage("disconnected")
+                stopLocationUpdates() // Stop GPS only after final status message
                 mqttClient.disconnect()
             } catch (e: Exception) {
                 // Ignore disconnect errors
