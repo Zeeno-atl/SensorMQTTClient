@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"
         tools:ignore="HighSamplingRate" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".MyApplication"
@@ -55,6 +56,15 @@
 
         <service
             android:name=".service.HttpService"
+            android:foregroundServiceType="specialUse"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- MQTT Service -->
+        <service android:name="org.eclipse.paho.android.service.MqttService" />
+        
+        <service
+            android:name=".service.MqttClientService"
             android:foregroundServiceType="specialUse"
             android:enabled="true"
             android:exported="false" />

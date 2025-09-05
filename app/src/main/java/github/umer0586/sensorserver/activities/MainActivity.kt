@@ -25,6 +25,7 @@ import github.umer0586.sensorserver.databinding.ActivityMainBinding
 import github.umer0586.sensorserver.fragments.AvailableSensorsFragment
 import github.umer0586.sensorserver.fragments.ConnectionsFragment
 import github.umer0586.sensorserver.fragments.ServerFragment
+import github.umer0586.sensorserver.fragments.ClientFragment
 import github.umer0586.sensorserver.service.HttpServerStateListener
 import github.umer0586.sensorserver.service.HttpService
 import github.umer0586.sensorserver.service.WebsocketService
@@ -298,11 +299,11 @@ class MainActivity : AppCompatActivity(), NavigationBarView.OnItemSelectedListen
         {
             when (pos)
             {
-                POSITION_SERVER_FRAGMENT -> return ServerFragment()
+                POSITION_SERVER_FRAGMENT -> return ClientFragment()
                 POSITION_CONNECTIONS_FRAGMENT -> return ConnectionsFragment()
                 POSITION_AVAILABLE_SENSORS_FRAGMENT -> return AvailableSensorsFragment()
             }
-            return ServerFragment()
+            return ClientFragment()
         }
 
         override fun getItemCount(): Int
