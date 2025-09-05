@@ -55,9 +55,9 @@ class SensorMqttClient(
     var onConnectionStatusChanged: ((Boolean, String?) -> Unit)? = null
     
     init {
-        // Start GPS and sensors immediately when client is created (independent of MQTT connection)
-        startLocationUpdates()
+        // Start sensors immediately when client is created (independent of MQTT connection)  
         startSensorUpdates()
+        // GPS will start when connecting to ensure permissions are available
     }
     
     fun connect() {
@@ -97,7 +97,7 @@ class SensorMqttClient(
                     onConnectionStatusChanged?.invoke(true, "Connected to broker")
                     publishQueuedMessages()
                     publishStatusMessage("connected")
-                    // GPS and sensors already started in init
+                    startLocationUpdates() // Start GPS when connected (permissions should be available)
                 }
                 
             } catch (exception: Exception) {
