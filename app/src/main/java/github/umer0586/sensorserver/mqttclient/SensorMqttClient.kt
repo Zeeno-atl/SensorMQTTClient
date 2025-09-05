@@ -44,8 +44,9 @@ class SensorMqttClient(
     // Sensor batching to prevent ANR  
     private val sensorDataBuffer = mutableMapOf<String, FloatArray>()
     private val batchHandler = Handler(Looper.getMainLooper())
-    private val batchingIntervalMs = 50L // Batch every 50ms for better responsiveness
+    private val batchingIntervalMs = 100L // Batch every 100ms for reliability
     private var batchingRunnable: Runnable? = null
+    private var batchingScheduled = false
     
     private var isConnected = false
     private var reconnectAttempts = 0
@@ -192,18 +193,19 @@ class SensorMqttClient(
     }
     
     private fun scheduleBatchPublish() {
-        // Cancel existing runnable if any
-        batchingRunnable?.let { batchHandler.removeCallbacks(it) }
+        // Only schedule if not already scheduled
+        if (batchingScheduled) return
         
-        // Schedule new batch publish
+        batchingScheduled = true
         batchingRunnable = Runnable {
+            batchingScheduled = false
             publishBatchedSensorData()
         }
         batchHandler.postDelayed(batchingRunnable!!, batchingIntervalMs)
     }
     
     private fun publishBatchedSensorData() {
-        if (sensorDataBuffer.isEmpty() || !isConnected) return
+        if (sensorDataBuffer.isEmpty()) return
         
         executor.execute {
             val currentBatch = sensorDataBuffer.toMap()
@@ -225,6 +227,7 @@ class SensorMqttClient(
         
         // Cancel any pending batch publish
         batchingRunnable?.let { batchHandler.removeCallbacks(it) }
+        batchingScheduled = false
         sensorDataBuffer.clear()
         
         executor.execute {
@@ -333,23 +336,34 @@ class SensorMqttClient(
     }
     
     private fun startSensorUpdates() {
-        // Get sampling rate from settings (in microseconds)
-        val samplingRateUs = appSettings.getSamplingRate()
-        
-        // Register for common sensors
-        val sensorsToRegister = listOf(
-            android.hardware.Sensor.TYPE_ACCELEROMETER,
-            android.hardware.Sensor.TYPE_GYROSCOPE, 
-            android.hardware.Sensor.TYPE_MAGNETIC_FIELD,
-            android.hardware.Sensor.TYPE_GRAVITY,
-            android.hardware.Sensor.TYPE_LINEAR_ACCELERATION,
-            android.hardware.Sensor.TYPE_ROTATION_VECTOR
-        )
-        
-        sensorsToRegister.forEach { sensorType ->
-            sensorManager.getDefaultSensor(sensorType)?.let { sensor ->
-                sensorManager.registerListener(this, sensor, samplingRateUs)
+        try {
+            // Get sampling rate from settings (in microseconds)
+            val samplingRateUs = appSettings.getSamplingRate()
+            
+            // Unregister first to ensure clean state
+            sensorManager.unregisterListener(this)
+            
+            // Register for common sensors
+            val sensorsToRegister = listOf(
+                android.hardware.Sensor.TYPE_ACCELEROMETER,
+                android.hardware.Sensor.TYPE_GYROSCOPE, 
+                android.hardware.Sensor.TYPE_MAGNETIC_FIELD,
+                android.hardware.Sensor.TYPE_GRAVITY,
+                android.hardware.Sensor.TYPE_LINEAR_ACCELERATION,
+                android.hardware.Sensor.TYPE_ROTATION_VECTOR
+            )
+            
+            sensorsToRegister.forEach { sensorType ->
+                sensorManager.getDefaultSensor(sensorType)?.let { sensor ->
+                    val success = sensorManager.registerListener(this, sensor, samplingRateUs)
+                    if (!success) {
+                        // Fallback to SENSOR_DELAY_GAME if custom rate fails
+                        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_GAME)
+                    }
+                }
             }
+        } catch (e: Exception) {
+            // Ignore sensor registration errors
         }
     }
     
